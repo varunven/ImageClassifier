@@ -11,15 +11,15 @@ from keras.utils import plot_model
 import numpy as np
 import os,random, sys
 
+# shape of img: SHAPE x SHAPE
 SHAPE = 120
 curr = "MyScraped3DImages/"
 
-#120, 3D. Other two are 300 and 475. Both require resizing of the images before running on the model
-
 def create_cnn():
     ''' 
-    creates and returns the convolutional neural network classifier 
+    creates and return the convolutional neural network classifier 
     '''
+
     classifier = Sequential()
 
     classifier.add(Conv2D(64, (3, 3),
@@ -44,17 +44,19 @@ def create_cnn():
 
 def train():
     '''
-    trains the model for primary or secondary types then saves it to local folder
+    trains, saves, and returns the model and its history
     '''
 
     classifier = create_cnn()
-    BATCH_SIZE = 64
+
+    BATCH_SIZE = 32
     EPOCHS = 20
     
-    # uses categorical because 19 possible types
-    classifier.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
+    # uses adam optimizer and categorical crossentropy loss function
+    classifier.compile(optimizer = 'adam',
+                       loss = 'categorical_crossentropy',
+                       metrics = ['accuracy'])
 
-    # data augmentation: prevent further overfit by randomly transforming the training images
     train_datagen = ImageDataGenerator(
         rescale = 1./255,
         rotation_range = 10,
@@ -63,30 +65,41 @@ def train():
         width_shift_range = 0.1,
         height_shift_range = 0.1,
         horizontal_flip = True,
-        vertical_flip = True)  
+        vertical_flip = True)
+    
     test_datagen = ImageDataGenerator(rescale = 1./255)
 
-    # file path depends on the primary vs secondary type
-    train = 'type1_sorted/train' 
-    test = 'type1_sorted/test' 
+    train = 'type1/train' 
+    test = 'type1/test' 
     train = curr+train
     test = curr+test
-    # retrieve datasets
-    training_set = train_datagen.flow_from_directory(train, target_size = (SHAPE, SHAPE),
-                                                     batch_size = BATCH_SIZE, class_mode = 'categorical')
+
+    training_set = train_datagen.flow_from_directory(train,
+                                                     target_size = (SHAPE, SHAPE),
+                                                     batch_size = BATCH_SIZE,
+                                                     class_mode = 'categorical')
     
-    test_set = test_datagen.flow_from_directory(test, target_size = (SHAPE, SHAPE),
-                                                batch_size = BATCH_SIZE, class_mode = 'categorical')
+    test_set = test_datagen.flow_from_directory(test,
+                                                target_size = (SHAPE, SHAPE),
+                                                batch_size = BATCH_SIZE,
+                                                class_mode = 'categorical')
 
-    history = classifier.fit_generator(training_set, epochs = EPOCHS, validation_data = test_set)
+    history = classifier.fit_generator(training_set,
+                                       epochs = EPOCHS, 
+                                       validation_data = test_set)
 
-    if not os.path.exists(os.path.dirname(curr+"model/")):
-        os.makedirs(os.path.dirname(curr+"model/"))
-    filename = "classifier1"
-    classifier.save(curr+"model/" + filename + ".h5")
-    print("Saved model to disk")
+	if not os.path.exists(os.path.dirname(curr+"model/")):
+		os.makedirs(os.path.dirname(curr+"model/"))
+	filename = "classifier1"
+	classifier.save(curr+"model/" + filename + ".h5")
+	print("Saved model to disk")
+
     return classifier, history
 
 if __name__ == "__main__":
-    #type 1
-    _, h = train()
+
+    s = True # save model
+    plt = False # plot model layers
+    
+    # build classifier for type 1 and 2
+    _, h = train()    
